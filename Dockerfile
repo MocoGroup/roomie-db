@@ -1,4 +1,4 @@
-FROM postgres:18
+FROM postgres:16
 
 LABEL author="MocóGroup"
 LABEL description="Banco de dados personalizado com schema inicial do Roomie"

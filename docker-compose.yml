@@ -1,6 +1,7 @@
 services:
   db:
-    image: roomie-database>latest
+    build: .
+    image: roomie-database:latest
 
     restart: always 
     

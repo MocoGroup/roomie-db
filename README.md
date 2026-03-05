@@ -68,8 +68,10 @@ O parâmetro `-v` é essencial para apagar o volume de dados antigo caso você t
 | id_usuario | SERIAL | PRIMARY KEY | Identificador único do usuário, gerado automaticamente |
 | nome | VARCHAR(100) | NOT NULL | Nome completo do usuário |
 | email | VARCHAR(100) | UNIQUE, NOT NULL | Email para login e comunicação, deve ser único no sistema |
+| cpf | VARCHAR(14) | UNIQUE, NOT NULL | CPF do usuário, deve ser único no sistema |
 | senha | VARCHAR(255) | NOT NULL | Senha criptografada do usuário |
-| genero | tipo_genero | ENUM('Masculino', 'Feminino', 'Outro') | Gênero do usuário |
+| genero | tipo_genero | ENUM('MALE', 'FEMALE', 'OTHER', 'MIXED') | Gênero do usuário |
+| cargo | user_role | ENUM('ADMIN', 'USER'), NOT NULL, DEFAULT 'USER' | Nível de acesso do usuário no sistema |
 
 ---
 
@@ -148,10 +150,13 @@ O parâmetro `-v` é essencial para apagar o volume de dados antigo caso você t
 | id_proprietario | INT | FOREIGN KEY → usuario(id_usuario), NOT NULL, ON DELETE CASCADE | Usuário que é proprietário do imóvel |
 | titulo | VARCHAR(100) | NOT NULL | Título do anúncio do imóvel |
 | descricao | TEXT | - | Descrição detalhada do imóvel e suas características |
-| tipo | VARCHAR(50) | NOT NULL | Tipo do imóvel (ex: Quarto, Apartamento, Casa, República) |
+| tipo | tipo_imovel | ENUM('HOUSE', 'APARTMENT', 'STUDIO', 'ROOM', 'DORMITORY'), NOT NULL | Tipo do imóvel |
 | preco | DECIMAL(10,2) | NOT NULL | Valor mensal do aluguel em reais |
-| genero_moradores | VARCHAR(20) | - | Gênero dos moradores aceitos (ex: Masculino, Feminino, Misto, Indiferente) |
+| genero_moradores | tipo_genero | ENUM('MALE', 'FEMALE', 'OTHER', 'MIXED'), NOT NULL | Gênero dos moradores aceitos |
 | aceita_animais | BOOLEAN | DEFAULT FALSE | Indica se aceita animais de estimação |
+| tem_garagem | BOOLEAN | DEFAULT FALSE | Indica se o imóvel possui garagem |
+| vagas_disponiveis | INT | NOT NULL, DEFAULT 1 | Número de vagas de moradia disponíveis no momento |
+| status | status_anuncio | ENUM('DRAFT', 'ACTIVE', 'RENTED'), NOT NULL, DEFAULT 'DRAFT' | Estado atual do anúncio do imóvel |
 
 ---
 
@@ -212,6 +217,19 @@ O parâmetro `-v` é essencial para apagar o volume de dados antigo caso você t
 
 ---
 
+## TABELA: interesse
+**Descrição:** Registra o interesse de um estudante em um imóvel, com controle de status pelo proprietário.
+
+| Atributo | Tipo | Restrições | Descrição |
+|----------|------|------------|-----------|
+| id_interesse | SERIAL | PRIMARY KEY | Identificador único do interesse |
+| id_estudante | INT | FOREIGN KEY → estudante(id_estudante), NOT NULL, ON DELETE CASCADE | Estudante que demonstrou interesse |
+| id_imovel | INT | FOREIGN KEY → imovel(id_imovel), NOT NULL, ON DELETE CASCADE | Imóvel de interesse |
+| data_interesse | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Data e hora em que o interesse foi registrado |
+| status | status_interesse | ENUM('PENDING', 'ACCEPTED', 'REJECTED'), NOT NULL, DEFAULT 'PENDING' | Status da solicitação de interesse |
+
+---
+
 ## TABELA: chat
 **Descrição:** Conversas entre estudantes e proprietários sobre um imóvel específico.
 
@@ -236,3 +254,43 @@ O parâmetro `-v` é essencial para apagar o volume de dados antigo caso você t
 | conteudo | TEXT | NOT NULL | Conteúdo textual da mensagem |
 | timestamp_mensagem | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Data e hora de envio da mensagem |
 | lida | BOOLEAN | DEFAULT FALSE | Indica se a mensagem foi lida pelo destinatário |
+
+---
+
+# Scripts SQL
+
+| Arquivo | Descrição |
+|---|---|
+| `scripts/01-schema.sql` | Tipos ENUM, tabelas e constraints |
+| `scripts/02-views.sql` | Views de consulta |
+| `scripts/03-triggers.sql` | Funções e triggers de automação |
+
+---
+
+# Views
+
+## v_detalhes_imovel
+Exibe os dados completos de um imóvel com endereço e nome do proprietário.
+
+## v_perfil_estudante_contato
+Consolida perfil do estudante com todos os telefones em uma única linha.
+
+## v_relatorio_proprietario
+Resumo por proprietário: total de imóveis, vagas, média e faixa de preços.
+
+## v_ranking_imoveis_avaliados
+Ranking de imóveis por média de nota (avaliações de estudantes), com total de avaliações, melhor e pior nota.
+
+## v_engajamento_estudante
+Agrega por estudante o total de interesses, contratos e avaliações feitas, além da média de nota dada.
+
+---
+
+# Triggers
+
+## trg_atualizar_vagas_contrato
+**Tabela:** `contrato_locacao` — `AFTER INSERT OR UPDATE OF status_contrato`
+
+Sincroniza automaticamente `vagas_disponiveis` e `status` do imóvel conforme o ciclo de vida dos contratos:
+- **INSERT** com `status = 'ACTIVE'` → decrementa `vagas_disponiveis`; se chegar a 0, marca o imóvel como `'RENTED'`.
+- **UPDATE** de `'ACTIVE'` para `'FINISHED'` ou `'CANCELLED'` → incrementa `vagas_disponiveis`; se o imóvel estava `'RENTED'`, volta para `'ACTIVE'`.

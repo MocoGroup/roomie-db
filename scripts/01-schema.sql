@@ -4,6 +4,7 @@ CREATE TYPE status_contrato AS ENUM ('ACTIVE', 'FINISHED', 'CANCELLED');
 CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
 CREATE TYPE tipo_imovel AS ENUM ('HOUSE', 'APARTMENT', 'STUDIO', 'ROOM', 'DORMITORY');
 CREATE TYPE status_anuncio AS ENUM ('DRAFT', 'ACTIVE', 'RENTED');
+CREATE TYPE status_interesse AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED');
 
 CREATE TABLE usuario(
     id_usuario SERIAL PRIMARY KEY,
@@ -177,6 +178,7 @@ CREATE TABLE interesse(
     id_estudante INT NOT NULL,
     id_imovel INT NOT NULL,
     data_interesse TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status status_interesse NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT fk_interesse_estudante
         FOREIGN KEY (id_estudante)

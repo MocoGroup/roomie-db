@@ -232,3 +232,16 @@ CREATE TABLE mensagem(
         REFERENCES usuario(id_usuario)
         ON DELETE CASCADE
 );
+
+CREATE TABLE notificacao(
+    id_notificacao SERIAL PRIMARY KEY,
+    id_destinatario INT NOT NULL,
+    mensagem VARCHAR(500) NOT NULL,
+    lida BOOLEAN NOT NULL DEFAULT FALSE,
+    criada_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_notificacao_destinatario
+        FOREIGN KEY (id_destinatario)
+        REFERENCES usuario(id_usuario)
+        ON DELETE CASCADE
+);
